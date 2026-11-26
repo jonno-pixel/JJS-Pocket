@@ -1,0 +1,42 @@
+name: Build Unsigned IPA
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode Project
+        run: xcodegen generate
+
+      - name: Build App (Unsigned)
+        run: |
+          xcodebuild -project JJS-Pocket.xcodeproj \
+            -scheme JJS-Pocket \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Package JJS-Pocket-unsigned.ipa
+        run: |
+          mkdir -p Payload
+          cp -r build/Build/Products/Release-iphoneos/JJS-Pocket.app Payload/
+          zip -r JJS-Pocket-unsigned.ipa Payload
+
+      - name: Upload JJS-Pocket-unsigned.ipa
+        uses: actions/upload-artifact@v4
+        with:
+          name: JJS-Pocket-unsigned
+          path: JJS-Pocket-unsigned.ipa
